@@ -84,7 +84,7 @@ int main()
 	MultiTrack multiTrack;
 	init_face_detect(); 
 	Camera camera;
-	camera.address_cam = "Video//18.mp4";
+	camera.address_cam = "Video//19.mp4";
 	
 	//camera.address_cam = "Video//3.avi";
 	//camera.address_cam = "rtsp://admin:admin@192.168.90.168";
@@ -108,8 +108,8 @@ int main()
 	}
 
 	cvNamedWindow("Stream", 0);
-	//resizeWindow("Stream", 1200, 700);
-	resizeWindow("Stream", 700, 1200);
+	resizeWindow("Stream", 1200, 700);
+	//resizeWindow("Stream", 700, 1200);
 	moveWindow("Stream", 0, 200);
 
 	while (1)
@@ -152,9 +152,14 @@ int main()
 		{
 			cout << "******************" << endl;
 			cout << "IdTrack: " << currentTrack.idTrack << " age: " << currentTrack.age()<<endl;
-			cout << "//////////////////" << endl;
-			if (currentTrack.age() > multiTrack.maxAgeUsingTime)currentTrack.clear();
 			
+			if (currentTrack.age() > multiTrack.maxAgeUsingTime)
+			{
+				cout << "Track was cleared" << endl;
+				currentTrack.clear();
+			}
+
+			cout << "//////////////////" << endl;
 			/*currentTrack.addToKarma();
 			if (currentTrack.currentKarma >= currentTrack.karma)
 			{

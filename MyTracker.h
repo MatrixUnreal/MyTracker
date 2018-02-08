@@ -36,6 +36,7 @@ using namespace std;
 class MyTrack
 {
 public:
+	MyTrack();
 	int countOfPoint();
 	Point lastPoint();
 	void clear();
@@ -52,12 +53,12 @@ public:
 	Rect lastRect;
 	void addToKarma();
 private:	
+	int maxAgeUsingTime=4000;
 	Point point;	
-	int minDistance = 30;
+	int minDistance = 80;
 	int maxPoints = 50;
 	clock_t lastTime= clock();
 	Scalar color= Scalar(rand() % 255, rand() % 255, rand() % 255);
-	
 };
 
 class MultiTrack
@@ -70,7 +71,7 @@ public:
 	vector<int> oldTracks;
 	vector<int> whoIsOld();
 	int maxAge = 3;
-	int maxAgeUsingTime = 2000;
+	int maxAgeUsingTime = 4000;
 	vector<MyTrack>& getVecTrack();
 	void destroyTrack(int id);
 	bool tryDestroyAll();
@@ -91,10 +92,8 @@ public:
 	void start(VideoCapture cap,VideoWriter& oVideoWriter, MultiTrack& multiTrack);
 
 private:
-	//Инициализация мультитрекера--------
-	// set the default tracking algorithm
+
 	std::string trackingAlg = "KCF";
-	// container of the tracked objects
 	vector<Rect2d> objects;
 	Rect lastRect;
 	vector<Rect> ROIs;
@@ -105,5 +104,4 @@ private:
 
 	int countOfMotion = 0;
 	int maxCountOfMotion = 2;
-	//===================================
 };

@@ -15,6 +15,11 @@ Point centerOfRect(Rect rect)
 }
 
 //=====================================================
+MyTrack::MyTrack()
+{
+	lastTime = clock();
+}
+
 int MyTrack::countOfPoint()
 {
 	return myLine.size();
@@ -74,13 +79,16 @@ bool MyTrack::add(Point point)
 void MyTrack::draw(Mat img)
 {
 	Point lastP;
-	for (auto currentLine : myLine)
+	if (age() != -1)
 	{
-		if (lastP != Point())
+		for (auto currentLine : myLine)
 		{
-			arrowedLine(img, lastP, currentLine, color, 3, 8, 0, 0.1);
+			if (lastP != Point())
+			{
+				arrowedLine(img, lastP, currentLine, color, 3, 8, 0, 0.1);
+			}
+			lastP = currentLine;
 		}
-		lastP = currentLine;
 	}
 }
 
@@ -107,8 +115,10 @@ bool MyTrack::nextTo(Point point)
 
 int MyTrack::age()
 {
-	if (lastTime <= 0 || lastTime>65000)lastTime=clock();
-	return (clock() - lastTime) ;
+	int now = clock();
+	if (lastTime <= 0 || lastTime>10000000)lastTime=now;
+	else if ((now - lastTime)>maxAgeUsingTime) return -1;
+	return (now - lastTime);
 }
 
 void MyTrack::addToKarma()
@@ -250,7 +260,8 @@ bool MultiTrack::tryDestroyAll()
 	int tempCountOfTracks = 0;
 	for (auto currentTrack : vecTrack)
 	{
-		if (currentTrack.age() >= maxAgeUsingTime)
+		int tempAgeTrack=currentTrack.age();
+		if ((tempAgeTrack >= maxAgeUsingTime)|| !currentTrack.countOfPoint() || tempAgeTrack==-1)
 		tempCountOfTracks++;
 	}
 	if (tempCountOfTracks >= vecTrack.size())
