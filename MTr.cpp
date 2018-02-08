@@ -66,8 +66,8 @@ std::vector<cv::Rect> getFaces(const cv::Mat& image)
 		//CV_HAAR_DO_CANNY_PRUNING,
 		//CV_HAAR_DO_ROUGH_SEARCH,
 		//CV_HAAR_FEATURE_MAX,
-		//CV_HAAR_FIND_BIGGEST_OBJECT,
-		CV_HAAR_SCALE_IMAGE,
+		CV_HAAR_FIND_BIGGEST_OBJECT,
+		//CV_HAAR_SCALE_IMAGE,
 		cv::Size(0,0));
 
 	return faces;
@@ -84,7 +84,8 @@ int main()
 	MultiTrack multiTrack;
 	init_face_detect(); 
 	Camera camera;
-	camera.address_cam = "Video//9.mp4";
+	camera.address_cam = "Video//18.mp4";
+	
 	//camera.address_cam = "Video//3.avi";
 	//camera.address_cam = "rtsp://admin:admin@192.168.90.168";
 	VideoCapture capture(camera.address_cam);
@@ -106,11 +107,11 @@ int main()
 		//return -1;
 	}
 
-	
-
 	cvNamedWindow("Stream", 0);
-	resizeWindow("Stream", 1200, 700);
+	//resizeWindow("Stream", 1200, 700);
+	resizeWindow("Stream", 700, 1200);
 	moveWindow("Stream", 0, 200);
+
 	while (1)
 	{
 		
@@ -119,6 +120,7 @@ int main()
 		emptyFrames_cam = 0;
 		capture >> camera.frame_cam;
 		
+
 		while (camera.frame_cam.empty())
 		{
 			capture >> camera.frame_cam;
@@ -132,7 +134,6 @@ int main()
 				system("pause");
 			}
 			if (emptyFrames_cam > 1000)emptyFrames_cam = 0;
-
 		}
 		
 		vector<Rect> faces;
@@ -141,23 +142,25 @@ int main()
 
 		for (auto face : faces)
 		{
-			//v_lastRect.clear();
 			cv::rectangle(camera.frame_cam, face, cv::Scalar(0, 255, 0),3);
 			multiTrack.add(face);
 			countoffaces++;
-			//v_lastRect.push_back(Rect(face.x-30,face.y-30,face.width+50,face.height+50));
 		}
-
-		//if (v_lastRect.size() && countoffaces == 0)
-			//(countoffaces == 0||countoffaces<v_lastRect.size()))
-
-		for (auto currentTrack : multiTrack.getVecTrack())
+		
+		
+		for (auto& currentTrack : multiTrack.getVecTrack())
 		{
+			cout << "******************" << endl;
+			cout << "IdTrack: " << currentTrack.idTrack << " age: " << currentTrack.age()<<endl;
+			cout << "//////////////////" << endl;
+			if (currentTrack.age() > multiTrack.maxAgeUsingTime)currentTrack.clear();
+			
+			/*currentTrack.addToKarma();
 			if (currentTrack.currentKarma >= currentTrack.karma)
 			{
 				cout << "Old track " << to_string(currentTrack.idTrack) << endl;
 				v_lastRect.push_back(currentTrack.lastRect);
-			}
+			}*/
 		}
 
 		if(v_lastRect.size())
@@ -165,8 +168,9 @@ int main()
 			OpenCVMultiTracker openCVMultiTracker(camera.frame_cam, v_lastRect);
 			openCVMultiTracker.start(capture, oVideoWriter, multiTrack);
 		}		
-		
+		multiTrack.tryDestroyAll();
 		multiTrack.draw(camera.frame_cam);
+		
 
 		waitKey(1);
 		imshow("Stream", camera.frame_cam);

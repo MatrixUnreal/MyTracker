@@ -50,11 +50,12 @@ public:
 	int currentKarma=0;
 	int karma = 8;
 	Rect lastRect;
+	void addToKarma();
 private:	
 	Point point;	
-	int minDistance = 100;
+	int minDistance = 30;
 	int maxPoints = 50;
-	clock_t lastTime;
+	clock_t lastTime= clock();
 	Scalar color= Scalar(rand() % 255, rand() % 255, rand() % 255);
 	
 };
@@ -69,14 +70,16 @@ public:
 	vector<int> oldTracks;
 	vector<int> whoIsOld();
 	int maxAge = 3;
-	vector<MyTrack> getVecTrack();
+	int maxAgeUsingTime = 2000;
+	vector<MyTrack>& getVecTrack();
+	void destroyTrack(int id);
+	bool tryDestroyAll();
 private:
 	int countOfTracks;
 	int lastNumberTrack;
 	int whoIsVacant();
 	vector<MyTrack> vecTrack;
 	int newTrack();
-	void destroyTrack(int id);
 };
 
 

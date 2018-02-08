@@ -50,10 +50,21 @@ bool MyTrack::add(Point point)
 	double dist = cv::norm(point - this->point);
 	if (minDistance > dist)
 	{
-		if (myLine.size() > maxPoints)myLine.erase(myLine.begin());
+		
+			if (myLine.size() > maxPoints)
+			{	try
+				{
+				myLine.erase(myLine.begin());
+				}
+				catch (Exception& ex)
+				{
+				cout << "Îøèáêà " << ex.what() << endl;
+				}
+			}
+		
 		myLine.push_back(point);
 		this->point = point;
-		lastTime = time(NULL);
+		lastTime = clock();
 		return 0;
 	}
 	else
@@ -96,9 +107,14 @@ bool MyTrack::nextTo(Point point)
 
 int MyTrack::age()
 {
-	return clock() - lastTime;
+	if (lastTime <= 0 || lastTime>65000)lastTime=clock();
+	return (clock() - lastTime) ;
 }
 
+void MyTrack::addToKarma()
+{
+	currentKarma++;
+}
 //=========================================================================================
 MultiTrack::MultiTrack()
 {
@@ -107,6 +123,7 @@ MultiTrack::MultiTrack()
 
 int MultiTrack::add(Rect rect)
 {
+	if (rect == Rect())return -1;
 	Point point=centerOfRect(rect);
 	if (countOfTracks)
 	{
@@ -222,9 +239,33 @@ vector<int> MultiTrack::whoIsOld()
 	return oldTracks;
 }
 
-vector<MyTrack> MultiTrack::getVecTrack()
+vector<MyTrack>& MultiTrack::getVecTrack()
 {
 	return vecTrack;
+}
+
+bool MultiTrack::tryDestroyAll()
+{   
+	cout<<endl;
+	int tempCountOfTracks = 0;
+	for (auto currentTrack : vecTrack)
+	{
+		if (currentTrack.age() >= maxAgeUsingTime)
+		tempCountOfTracks++;
+	}
+	if (tempCountOfTracks >= vecTrack.size())
+	{
+		vecTrack.clear();
+		countOfTracks=0;
+		lastNumberTrack=0;
+		cout << "Tracks list was cleared" << endl;
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+
 }
 
 //==============================================================================
