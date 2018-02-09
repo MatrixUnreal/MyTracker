@@ -125,6 +125,7 @@ void MyTrack::addToKarma()
 {
 	currentKarma++;
 }
+
 //=========================================================================================
 MultiTrack::MultiTrack()
 {
@@ -141,7 +142,6 @@ int MultiTrack::add(Rect rect)
 		int position = 0;//position of track in vector of tracks
 		for (auto& currentTrack : vecTrack)
 		{
-			
 			if (currentTrack.nextTo(point))
 			{                                     
 				mapOfOverlap.insert(pair<int, int>(position, currentTrack.idTrack));
@@ -269,19 +269,16 @@ bool MultiTrack::tryDestroyAll()
 		vecTrack.clear();
 		countOfTracks=0;
 		lastNumberTrack=0;
-		cout << "Tracks list was cleared" << endl;
+		cout << "." << endl;
 		return false;
 	}
 	else
 	{
 		return true;
 	}
-
 }
 
 //==============================================================================
-
-
 OpenCVMultiTracker::OpenCVMultiTracker( Mat frame, vector<Rect> ROIs)
 {
 	fullImage = frame;
@@ -315,13 +312,11 @@ Point OpenCVMultiTracker::start(VideoCapture cap)
 		waitKey(1);
 		if (countOfMotion > maxCountOfMotion)return centerOfRect(trackers.getObjects()[0]);
 
-		//жмем ESC для выхода
 		if (waitKey(1) == 27)
 		{
 			break;
 		}
-		//if(getFaces(frame).size())break;
-		
+		//if(getFaces(frame).size())break;		
 	}
 }
 
@@ -354,23 +349,18 @@ void OpenCVMultiTracker::start(VideoCapture cap,  VideoWriter& oVideoWriter, Mul
 		multiTrack.draw(fullImage);
 		oVideoWriter.write(fullImage);
 		
-
 		imshow("Stream", fullImage);
 		waitKey(1);
 		if (countOfMotion > maxCountOfMotion)return;
-			//centerOfRect(trackers.getObjects()[0]);
 
-		//жмем ESC для выхода
 		if (waitKey(1) == 27)
 		{
 			break;
 			return ;
 		}
 		//if(getFaces(frame).size())break;
-
 	}
 }
-
 
 void OpenCVMultiTracker::addROIs()
 {

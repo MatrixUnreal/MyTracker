@@ -84,7 +84,7 @@ int main()
 	MultiTrack multiTrack;
 	init_face_detect(); 
 	Camera camera;
-	camera.address_cam = "Video//19.mp4";
+	camera.address_cam = "Video//3.mp4";
 	
 	//camera.address_cam = "Video//3.avi";
 	//camera.address_cam = "rtsp://admin:admin@192.168.90.168";
