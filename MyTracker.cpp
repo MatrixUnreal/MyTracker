@@ -14,6 +14,12 @@ Point centerOfRect(Rect rect)
 	return Point(rect.x + rect.width / 2, rect.y + rect.height / 2);
 }
 
+bool operator>(Rect r,Size s)
+{
+	if(r.width>s.width && r.height>s.height) return true;
+	else return false;
+}
+
 //=====================================================
 MyTrack::MyTrack()
 {
@@ -44,7 +50,7 @@ bool MyTrack::add(Point point)
 		{
 			this->point = point;
 			myLine.push_back(point);
-			lastTime = time(NULL);
+			lastTime = clock();
 			return 0;
 		}
 	}
@@ -132,56 +138,90 @@ MultiTrack::MultiTrack()
 	srand(time(NULL));
 }
 
-int MultiTrack::add(Rect rect)
+pair<int,int> MultiTrack::intersectionRect(vector<Rect> rects)
 {
-	if (rect == Rect())return -1;
-	Point point=centerOfRect(rect);
-	if (countOfTracks)
+	pair<int, int>whoIsIntersects;
+	if (rects.size() > 1)
 	{
-		map<int, int>mapOfOverlap;
-		int position = 0;//position of track in vector of tracks
-		for (auto& currentTrack : vecTrack)
+		for (int i = 0; i < rects.size(); i++)
 		{
-			if (currentTrack.nextTo(point))
-			{                                     
-				mapOfOverlap.insert(pair<int, int>(position, currentTrack.idTrack));
-				currentTrack.currentKarma = 0;
-			}
-			else
+			if (rects[i] > maxSizeRect)continue;
+			for (int j = i + 1; j <= rects.size(); j++)
 			{
-				currentTrack.currentKarma = min((currentTrack.currentKarma + 1), currentTrack.karma);
+				if (rects[j] > maxSizeRect)continue;
+				if ((rects[i] & rects[j]) != Rect())
+				{
+					whoIsIntersects.first = i;
+					whoIsIntersects.second = j;
+					cout << "detect intersection: " << i << " and " << j << endl;
+				}
 			}
-			position++;
 		}
+	}
+	return whoIsIntersects;
+}
 
-		if (!mapOfOverlap.size())
+
+void MultiTrack::add(vector<Rect>& rects)
+{
+
+	if (!rects.size())return;
+
+	if (rects.size() > 1)
+		cout << endl;
+	intersectionRect(rects);
+
+	
+	for (auto rect : rects)
+	{
+		if (rect > maxSizeRect)continue;
+		Point point = centerOfRect(rect);
+		if (countOfTracks)
 		{
-			int idNewTrack = 0;
-			idNewTrack = newTrack();
-			vecTrack[idNewTrack - 1].add(point);
-			vecTrack[idNewTrack - 1].lastRect=rect;
-			return idNewTrack;
-		}
-		else if (mapOfOverlap.size() == 1)
-		{
-			vecTrack[mapOfOverlap.begin()->first].add(point);
-			vecTrack[mapOfOverlap.begin()->first].lastRect = rect;
-			return vecTrack[mapOfOverlap.begin()->first].idTrack;
+			map<int, int>mapOfOverlap;
+			int position = 0; //position of track in vector of tracks
+			for (auto& currentTrack : vecTrack)
+			{
+				if (currentTrack.nextTo(point))
+				{
+					mapOfOverlap.insert(pair<int, int>(position, currentTrack.idTrack));
+					currentTrack.currentKarma = 0;
+				}
+				else
+				{
+					currentTrack.currentKarma = min((currentTrack.currentKarma + 1), currentTrack.karma);
+				}
+				position++;
+			}
+
+			if (!mapOfOverlap.size()) //no one is near
+			{
+				int idNewTrack = 0;
+				idNewTrack = newTrack();
+				vecTrack[idNewTrack - 1].add(point);
+				vecTrack[idNewTrack - 1].lastRect = rect;
+				continue;
+			}
+			else if (mapOfOverlap.size() == 1) //only one track near to point
+			{
+				vecTrack[mapOfOverlap.begin()->first].add(point);
+				vecTrack[mapOfOverlap.begin()->first].lastRect = rect;
+				continue;
+			}
+			else //two track have to keep the point
+			{
+				cout << "Near to few tracks" << endl;
+			}
 		}
 		else
 		{
-			cout << "Near to few tracks" << endl;
+			int newTrackId = newTrack();
+			cout << "New track " << newTrackId << endl;
+			vecTrack[0].add(point);
+			vecTrack[0].lastRect = rect;
+			continue;
 		}
 	}
-	else
-	{
-		int newTrackId=newTrack();
-		cout << "New track " << newTrackId << endl;
-		vecTrack[0].add(point);
-		vecTrack[0].lastRect = rect;
-		return 0;
-	}
-
 }
 
 int MultiTrack::newTrack()
@@ -196,16 +236,6 @@ int MultiTrack::newTrack()
 
 int MultiTrack::whoIsVacant()
 {
-	/*for (int i = 0; i < lastNumberTrack; i++)
-	{
-		for (int j = 0; j < vecTrack.size(); j++)
-		{
-			if (i == vecTrack[j].idTrack)break;//if we have such number then let's break
-			if (j == (vecTrack.size() - 1))return i;//if we didn't have then return number
-		}
-	}
-	return 0;
-	*/
 	return (lastNumberTrack + 1);
 }
 
@@ -343,10 +373,10 @@ void OpenCVMultiTracker::start(VideoCapture cap,  VideoWriter& oVideoWriter, Mul
 		{
 			paintRect(trackers.getObjects()[i], fullImage, 0, 255, 255);
 			//rectangle(fullImage, trackers.getObjects()[i], Scalar(0, 0, 255), 2, 1);
-			multiTrack.add(trackers.getObjects()[i]);
+			//multiTrack.add(trackers.getObjects()[i]);
 		}
 		
-		multiTrack.draw(fullImage);
+		//multiTrack.draw(fullImage);
 		oVideoWriter.write(fullImage);
 		
 		imshow("Stream", fullImage);

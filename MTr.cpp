@@ -12,7 +12,7 @@
 using namespace cv;
 using namespace std;
 
-int fourcc = CV_FOURCC('X', 'V', 'I', 'D');//     #does not work
+int fourcc  = CV_FOURCC('X', 'V', 'I', 'D');//     #does not work
 int	fourcc0 = CV_FOURCC('D', 'I', 'V', 'X');//     #does not work
 int	fourcc1 = CV_FOURCC('M', 'J', 'P', 'G');//     #does not work
 int	fourcc2 = CV_FOURCC('8', 'B', 'P', 'S');//     #works, large
@@ -114,8 +114,7 @@ int main()
 
 	while (1)
 	{
-		
-		int countoffaces = 0;
+
 		vector<Rect> v_lastRect;
 		emptyFrames_cam = 0;
 		capture >> camera.frame_cam;
@@ -127,7 +126,7 @@ int main()
 			emptyFrames_cam++;
 			if (emptyFrames_cam > 10)
 			{
-				cout << "will release frame1" << endl;
+				cout << "will release frame" << endl;
 				capture.release();
 				capture.open(camera.address_cam);
 
@@ -140,20 +139,21 @@ int main()
 		faces=getFaces(camera.frame_cam);
 		Point centerOfFace;		
 
+
 		for (auto face : faces)
 		{
 			cv::rectangle(camera.frame_cam, face, cv::Scalar(0, 255, 0),3);
-			multiTrack.add(face);
-			countoffaces++;
 		}
-		
+
+		multiTrack.add(faces);		
 		
 		for (auto& currentTrack : multiTrack.getVecTrack())
 		{
+			int currentAge = currentTrack.age();
 			cout << "******************" << endl;
-			cout << "IdTrack: " << currentTrack.idTrack << " age: " << currentTrack.age()<<endl;
+			cout << "IdTrack: " << currentTrack.idTrack << " age: " << currentAge <<endl;
 			
-			if (currentTrack.age() > multiTrack.maxAgeUsingTime)
+			if (currentAge > multiTrack.maxAgeUsingTime)
 			{
 				cout << "Track was cleared" << endl;
 				currentTrack.clear();
@@ -168,11 +168,11 @@ int main()
 			}*/
 		}
 
-		if(v_lastRect.size())
-		{
-			OpenCVMultiTracker openCVMultiTracker(camera.frame_cam, v_lastRect);
-			openCVMultiTracker.start(capture, oVideoWriter, multiTrack);
-		}		
+		//if(v_lastRect.size())
+		//{
+		//	OpenCVMultiTracker openCVMultiTracker(camera.frame_cam, v_lastRect);
+		//	openCVMultiTracker.start(capture, oVideoWriter, multiTrack);
+		//}		
 		multiTrack.tryDestroyAll();
 		multiTrack.draw(camera.frame_cam);
 		

@@ -64,7 +64,7 @@ private:
 class MultiTrack
 {
 public:
-	int add(Rect rect);
+	void add(vector<Rect>& rects);
 	MultiTrack();
 	void draw(Mat img);
 	void show();
@@ -76,6 +76,8 @@ public:
 	void destroyTrack(int id);
 	bool tryDestroyAll();
 private:
+	pair<int, int> intersectionRect(vector<Rect> rects);
+	Size maxSizeRect = Size(150,150);
 	int countOfTracks;
 	int lastNumberTrack;
 	int whoIsVacant();
