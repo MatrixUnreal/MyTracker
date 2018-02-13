@@ -53,9 +53,9 @@ public:
 	Rect lastRect;
 	void addToKarma();
 private:	
-	int maxAgeUsingTime=4000;
+	int maxAgeUsingTime=9000;
 	Point point;	
-	int minDistance = 80;
+	int minDistance = 50;
 	int maxPoints = 50;
 	clock_t lastTime= clock();
 	Scalar color= Scalar(rand() % 255, rand() % 255, rand() % 255);
@@ -71,12 +71,12 @@ public:
 	vector<int> oldTracks;
 	vector<int> whoIsOld();
 	int maxAge = 3;
-	int maxAgeUsingTime = 4000;
+	int maxAgeUsingTime = 9000;
 	vector<MyTrack>& getVecTrack();
 	void destroyTrack(int id);
 	bool tryDestroyAll();
 private:
-	pair<int, int> intersectionRect(vector<Rect> rects);
+	vector<pair<int, int>> intersectionRect(vector<Rect> rects);
 	Size maxSizeRect = Size(150,150);
 	int countOfTracks;
 	int lastNumberTrack;

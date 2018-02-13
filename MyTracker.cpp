@@ -138,9 +138,9 @@ MultiTrack::MultiTrack()
 	srand(time(NULL));
 }
 
-pair<int,int> MultiTrack::intersectionRect(vector<Rect> rects)
+vector<pair<int,int>> MultiTrack::intersectionRect(vector<Rect> rects)
 {
-	pair<int, int>whoIsIntersects;
+	vector<pair<int, int>>whoIsIntersects;
 	if (rects.size() > 1)
 	{
 		for (int i = 0; i < rects.size(); i++)
@@ -151,8 +151,8 @@ pair<int,int> MultiTrack::intersectionRect(vector<Rect> rects)
 				if (rects[j] > maxSizeRect)continue;
 				if ((rects[i] & rects[j]) != Rect())
 				{
-					whoIsIntersects.first = i;
-					whoIsIntersects.second = j;
+					whoIsIntersects.push_back(pair<int,int>(rects[i].area() >rects[j].area() ? i : j,
+						rects[i].area() >rects[j].area() ? j : i)) ;
 					cout << "detect intersection: " << i << " and " << j << endl;
 				}
 			}
@@ -169,12 +169,17 @@ void MultiTrack::add(vector<Rect>& rects)
 
 	if (rects.size() > 1)
 		cout << endl;
-	intersectionRect(rects);
+	vector<pair<int, int>>intersectionPairs=intersectionRect(rects);
 
-	
+	int tempCurrentStep=0;
 	for (auto rect : rects)
 	{
 		if (rect > maxSizeRect)continue;
+		
+		//for (auto intersectionPair : intersectionPairs)
+		//	if (intersectionPair.first == tempCurrentStep) return;
+	
+		//if (tempCurrentStep == intersectionPair.second)continue;
 		Point point = centerOfRect(rect);
 		if (countOfTracks)
 		{
@@ -221,6 +226,7 @@ void MultiTrack::add(vector<Rect>& rects)
 			vecTrack[0].lastRect = rect;
 			continue;
 		}
+		tempCurrentStep++;
 	}
 }
 
