@@ -20,6 +20,21 @@ bool operator>(Rect r,Size s)
 	else return false;
 }
 
+struct PointOfRect
+{
+	Point pointCenter, topCenter, bottomCenter, leftCenter, rightCenter;
+	int minDistanse;
+	PointOfRect(Rect rect)
+	{
+		pointCenter = centerOfRect(rect);
+		topCenter = Point(rect.x + rect.width / 2, rect.y);
+		bottomCenter = Point(rect.x + rect.width / 2, rect.y + rect.height);
+		leftCenter = Point(rect.x, rect.y + rect.height / 2);
+		rightCenter = Point(rect.x + rect.width, rect.y + rect.height / 2);
+		minDistanse = (rect.width/(2.2));
+	}
+};
+
 //=====================================================
 MyTrack::MyTrack()
 {
@@ -138,9 +153,10 @@ MultiTrack::MultiTrack()
 	srand(time(NULL));
 }
 
-vector<pair<int,int>> MultiTrack::intersectionRect(vector<Rect> rects)
+vector<HowIntersectedRect> MultiTrack::intersectionRect(vector<Rect> rects)
 {
-	vector<pair<int, int>>whoIsIntersects;
+	vector<HowIntersectedRect>v_howIntersectedRect;
+	HowIntersectedRect howIntersectedRect;
 	if (rects.size() > 1)
 	{
 		for (int i = 0; i < rects.size(); i++)
@@ -149,18 +165,31 @@ vector<pair<int,int>> MultiTrack::intersectionRect(vector<Rect> rects)
 			for (int j = i + 1; j <= rects.size(); j++)
 			{
 				if (rects[j] > maxSizeRect)continue;
-				if ((rects[i] & rects[j]) != Rect())
+				Rect resultRect=rects[i] & rects[j];
+				if (resultRect != Rect())
 				{
-					whoIsIntersects.push_back(pair<int,int>(rects[i].area() >rects[j].area() ? i : j,
-						rects[i].area() >rects[j].area() ? j : i)) ;
+					howIntersectedRect.whoAreIntersected=pair<int,int>(rects[i].area() >rects[j].area() ? i : j,
+						rects[i].area() >rects[j].area() ? j : i);
+					howIntersectedRect.howWereIntersected = -1;
 					cout << "detect intersection: " << i << " and " << j << endl;
+
+					if (resultRect == rects[i])
+					{
+						cout << "Rect " << i << "(is smaller)" << " inside " << j << endl;
+						howIntersectedRect.howWereIntersected = i;
+					}
+					else if (resultRect == rects[j])
+					{
+						cout << "Rect " << j << "(is smaller)" << " inside " << i << endl;
+						howIntersectedRect.howWereIntersected = j;
+					}
 				}
+				v_howIntersectedRect.push_back(howIntersectedRect);
 			}
 		}
 	}
-	return whoIsIntersects;
+	return v_howIntersectedRect;
 }
-
 
 void MultiTrack::add(vector<Rect>& rects)
 {
@@ -169,64 +198,107 @@ void MultiTrack::add(vector<Rect>& rects)
 
 	if (rects.size() > 1)
 		cout << endl;
-	vector<pair<int, int>>intersectionPairs=intersectionRect(rects);
+	vector<HowIntersectedRect> intersectionStruct=intersectionRect(rects);
 
-	int tempCurrentStep=0;
 	for (auto rect : rects)
 	{
 		if (rect > maxSizeRect)continue;
+	
+		/*	
+	bool mustContinue = false;
 		
+		for (auto currentIntersectionStruct : intersectionStruct)
+		{
+			if (currentIntersectionStruct.howWereIntersected!=-1)
+			{
+				if (tempCurrentStep != currentIntersectionStruct.howWereIntersected)
+				{
+					mustContinue = true;
+					break;
+				}
+			}
+		}
+		if (mustContinue)
+		{
+			cout << "was passed" << endl;
+			mustContinue = false;
+			continue;
+		}
+	*/	
 		//for (auto intersectionPair : intersectionPairs)
 		//	if (intersectionPair.first == tempCurrentStep) return;
 	
 		//if (tempCurrentStep == intersectionPair.second)continue;
-		Point point = centerOfRect(rect);
-		if (countOfTracks)
-		{
-			map<int, int>mapOfOverlap;
-			int position = 0; //position of track in vector of tracks
-			for (auto& currentTrack : vecTrack)
-			{
-				if (currentTrack.nextTo(point))
-				{
-					mapOfOverlap.insert(pair<int, int>(position, currentTrack.idTrack));
-					currentTrack.currentKarma = 0;
-				}
-				else
-				{
-					currentTrack.currentKarma = min((currentTrack.currentKarma + 1), currentTrack.karma);
-				}
-				position++;
-			}
 
-			if (!mapOfOverlap.size()) //no one is near
-			{
-				int idNewTrack = 0;
-				idNewTrack = newTrack();
-				vecTrack[idNewTrack - 1].add(point);
-				vecTrack[idNewTrack - 1].lastRect = rect;
-				continue;
-			}
-			else if (mapOfOverlap.size() == 1) //only one track near to point
-			{
-				vecTrack[mapOfOverlap.begin()->first].add(point);
-				vecTrack[mapOfOverlap.begin()->first].lastRect = rect;
-				continue;
-			}
-			else //two track have to keep the point
-			{
-				cout << "Near to few tracks" << endl;
-			}
-		}
-		else
+		PointOfRect pointOfRect(rect);
+
+		for (int i = 0; i < 4; i++)
 		{
-			int newTrackId = newTrack();
-			cout << "New track " << newTrackId << endl;
-			vecTrack[0].add(point);
-			vecTrack[0].lastRect = rect;
-			continue;
+			Point operatePoint;
+			int minDynamicDistanse = pointOfRect.minDistanse;
+			switch (i)
+			{
+			case 0:
+				operatePoint = pointOfRect.topCenter;
+				break;
+			case 1:
+				operatePoint = pointOfRect.bottomCenter;
+				break;
+			case 2:
+				operatePoint = pointOfRect.leftCenter;
+				break;
+			case 3:
+				operatePoint = pointOfRect.rightCenter;
+				break;
+			}
+			
+			if (countOfTracks)
+			{
+				map<int, int>mapOfOverlap;
+				int position = 0; //position of track in vector of tracks
+				for (auto& currentTrack : vecTrack)
+				{
+					currentTrack.minDistance = pointOfRect.minDistanse;
+					if (currentTrack.nextTo(operatePoint))
+					{
+						mapOfOverlap.insert(pair<int, int>(position, currentTrack.idTrack));
+						currentTrack.currentKarma = 0;
+					}
+					else
+					{
+						currentTrack.currentKarma = min((currentTrack.currentKarma + 1), currentTrack.karma);
+					}
+					position++;
+				}
+
+				if (!mapOfOverlap.size()) //no one is near
+				{
+					int idNewTrack = 0;
+					idNewTrack = newTrack();
+					vecTrack[idNewTrack - 1].add(operatePoint);
+					vecTrack[idNewTrack - 1].lastRect = rect;
+					continue;
+				}
+				else if (mapOfOverlap.size() == 1) //only one track near to point
+				{
+					vecTrack[mapOfOverlap.begin()->first].add(operatePoint);
+					vecTrack[mapOfOverlap.begin()->first].lastRect = rect;
+					continue;
+				}
+				else //two track have to keep the point
+				{
+					cout << "Near to few tracks" << endl;
+				}
+			}
+			else
+			{
+				int newTrackId = newTrack();
+				cout << "New track " << newTrackId << endl;
+				vecTrack[0].add(operatePoint);
+				vecTrack[0].lastRect = rect;
+				continue;
+			}
 		}
-		tempCurrentStep++;
 	}
 }
 

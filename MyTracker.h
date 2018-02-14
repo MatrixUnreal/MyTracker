@@ -33,6 +33,12 @@
 using namespace cv;
 using namespace std;
 
+struct HowIntersectedRect
+{
+	pair<int, int> whoAreIntersected;
+	int howWereIntersected;
+};
+
 class MyTrack
 {
 public:
@@ -52,10 +58,11 @@ public:
 	int karma = 8;
 	Rect lastRect;
 	void addToKarma();
+	int minDistance = 50;
+	bool visible = false;
 private:	
 	int maxAgeUsingTime=9000;
-	Point point;	
-	int minDistance = 50;
+	Point point;		
 	int maxPoints = 50;
 	clock_t lastTime= clock();
 	Scalar color= Scalar(rand() % 255, rand() % 255, rand() % 255);
@@ -75,9 +82,11 @@ public:
 	vector<MyTrack>& getVecTrack();
 	void destroyTrack(int id);
 	bool tryDestroyAll();
+	int accuracy = 0;
+	Point middlePointOfFewTracks;
 private:
-	vector<pair<int, int>> intersectionRect(vector<Rect> rects);
-	Size maxSizeRect = Size(150,150);
+	vector<HowIntersectedRect> intersectionRect(vector<Rect> rects);
+	Size maxSizeRect = Size(400,400);
 	int countOfTracks;
 	int lastNumberTrack;
 	int whoIsVacant();
@@ -107,3 +116,5 @@ private:
 	int countOfMotion = 0;
 	int maxCountOfMotion = 2;
 };
+
+ 

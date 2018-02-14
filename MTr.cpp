@@ -62,11 +62,11 @@ std::vector<cv::Rect> getFaces(const cv::Mat& image)
 	//gray=gray(Rect(0,0, gray.rows/2,gray.cols/2));
 		//copygray
 
-	face_detector.detectMultiScale(gray, faces, 1.1, 3, 0 | 
+	face_detector.detectMultiScale(gray, faces, 1.3, 8, 0 | 
 		//CV_HAAR_DO_CANNY_PRUNING,
-		CV_HAAR_DO_ROUGH_SEARCH,
+		//CV_HAAR_DO_ROUGH_SEARCH,
 		//CV_HAAR_FEATURE_MAX,
-		//CV_HAAR_FIND_BIGGEST_OBJECT,
+		CV_HAAR_FIND_BIGGEST_OBJECT,
 		//CV_HAAR_SCALE_IMAGE,
 		cv::Size(0,0));
 
@@ -84,9 +84,9 @@ int main()
 	MultiTrack multiTrack;
 	init_face_detect(); 
 	Camera camera;
-	camera.address_cam = "Video//3.mp4";
+	//camera.address_cam = "Video//3.mp4";
 	
-	//camera.address_cam = "Video//2.avi";
+	camera.address_cam = "Video//3.avi";
 	//camera.address_cam = "rtsp://admin:admin@192.168.90.168";
 	VideoCapture capture(camera.address_cam);
 	int emptyFrames_cam = 0;
