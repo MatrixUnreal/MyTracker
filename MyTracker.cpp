@@ -20,131 +20,130 @@ bool operator>(Rect r,Size s)
 	else return false;
 }
 
-struct PointOfRect
-{
-	Point pointCenter, topCenter, bottomCenter, leftCenter, rightCenter;
-	int minDistanse;
-	PointOfRect(Rect rect)
-	{
-		pointCenter = centerOfRect(rect);
-		topCenter = Point(rect.x + rect.width / 2, rect.y);
-		bottomCenter = Point(rect.x + rect.width / 2, rect.y + rect.height);
-		leftCenter = Point(rect.x, rect.y + rect.height / 2);
-		rightCenter = Point(rect.x + rect.width, rect.y + rect.height / 2);
-		minDistanse = (rect.width/(2.2));
-	}
-};
 
-//=====================================================
-MyTrack::MyTrack()
+//=========================================================================================
+
+MyTrackUsingRect::MyTrackUsingRect()
 {
 	lastTime = clock();
 }
 
-int MyTrack::countOfPoint()
+int MyTrackUsingRect::countOfRect()
 {
-	return myLine.size();
+	return myRects.size();
 }
 
-Point MyTrack::lastPoint()
+void MyTrackUsingRect::clear()
 {
-	return point;
+	myRects.clear();
 }
 
-void MyTrack::clear()
+void MyTrackUsingRect::draw(Mat& img)
 {
-	myLine.clear();
-}
-
-bool MyTrack::add(Point point)
-{
-	try
-	{
-		int tempSize = myLine.size();
-		if (!tempSize && point != Point())
-		{
-			this->point = point;
-			myLine.push_back(point);
-			lastTime = clock();
-			return 0;
-		}
-	}
-	catch (Exception& ex)
-	{
-		cout <<"exception "<< ex.what() << endl;
-	}
-	double dist = cv::norm(point - this->point);
-	if (minDistance > dist)
-	{
-		
-			if (myLine.size() > maxPoints)
-			{	try
-				{
-				myLine.erase(myLine.begin());
-				}
-				catch (Exception& ex)
-				{
-				cout << "Îøèáêà " << ex.what() << endl;
-				}
-			}
-		
-		myLine.push_back(point);
-		this->point = point;
-		lastTime = clock();
-		return 0;
-	}
-	else
-		return 1;	
-}
-
-void MyTrack::draw(Mat img)
-{
-	Point lastP;
 	if (age() != -1)
 	{
-		for (auto currentLine : myLine)
+		for (auto currentRect : myRects)
 		{
-			if (lastP != Point())
-			{
-				arrowedLine(img, lastP, currentLine, color, 3, 8, 0, 0.1);
-			}
-			lastP = currentLine;
+			cv::rectangle(img, currentRect.lastInput, color, 3);
 		}
 	}
 }
 
-Point MyTrack::center(Rect rect)
+int MyTrackUsingRect::age()
 {
-	return Point(rect.x+rect.width/2,rect.y+rect.height/2);
+	int now = clock();
+	if (lastTime <= 0 || lastTime>10000000)lastTime = now;
+	else if ((now - lastTime)>maxAgeUsingTime) return -1;
+	return (now - lastTime);
 }
 
-void MyTrack::showLine()
+void MyTrackUsingRect::showLine()
 {
-	cout << endl << "---------"<< idTrack <<"---------" << endl;
-	std::copy(myLine.begin(), myLine.end(),	std::ostream_iterator<Point>(std::cout, " "));
+	cout << endl << "---------" << idTrack << "---------" << endl;
+	for (auto myRect:myRects)
+	{
+		cout << "x=" << to_string(myRect.lastInput.x)<<" y=" << to_string(myRect.lastInput.y)<<" | ";
+	}
 	cout << endl << "===================" << endl;
+	
 }
 
-bool MyTrack::nextTo(Point point)
+bool MyTrackUsingRect::add(Rect inputRect)
 {
-	double dist = cv::norm(point - this->point);
-	if (minDistance > dist)
+	if (inputRect == Rect())return false;
+	PointOfRect inputRect_(inputRect);
+
+	myRects.push_back(inputRect_);
+	lastTime = clock();	
+
+	if (myRects.size() > maxRects)
+	{
+		try
+		{
+			myRects.erase(myRects.begin());
+		}
+		catch (Exception& ex)
+		{
+			cout << "Îøèáêà " << ex.what() << endl;
+		}
+	}
+
+	return true;
+}
+
+bool MyTrackUsingRect::nextTo(Rect inputRect)
+{
+	if (inputRect == Rect())return false;
+	PointOfRect inputRect_(inputRect);
+
+	double distBC = cv::norm(inputRect_.bottomCenter - myRects.back().bottomCenter);
+	double distTC = cv::norm(inputRect_.topCenter - myRects.back().topCenter);
+	double distLC = cv::norm(inputRect_.leftCenter - myRects.back().leftCenter);
+	double distRC = cv::norm(inputRect_.rightCenter - myRects.back().rightCenter);
+	if (minDistance > distBC && minDistance > distTC && minDistance > distLC && minDistance > distRC)
 		return true;
 	else
 		return false;
 }
 
-int MyTrack::age()
+bool MyTrackUsingRect::nextTo(Rect inputRect, int dir)
 {
-	int now = clock();
-	if (lastTime <= 0 || lastTime>10000000)lastTime=now;
-	else if ((now - lastTime)>maxAgeUsingTime) return -1;
-	return (now - lastTime);
+	if (inputRect == Rect())return false;
+	PointOfRect inputRect_(inputRect);
+
+	double distBC = cv::norm(inputRect_.bottomCenter - myRects.end()->bottomCenter);
+	double distTC = cv::norm(inputRect_.topCenter - myRects.end()->topCenter);
+	double distLC = cv::norm(inputRect_.leftCenter - myRects.end()->leftCenter);
+	double distRC = cv::norm(inputRect_.rightCenter - myRects.end()->rightCenter);
+	if (minDistance > distBC && minDistance > distTC && (dir==LEFT? minDistance > distLC:minDistance > distRC))
+		return true;
+	else
+		return false;
 }
 
-void MyTrack::addToKarma()
+PointOfRect& MyTrackUsingRect::getLastRect()
 {
-	currentKarma++;
+	if (myRects.size())
+		return myRects.back();
+	else
+		return PointOfRect(Rect());
+}
+
+double MyTrackUsingRect::getWeightedDistance(cv::Rect detect)
+{
+	double leftDist = distPointToPoint(getLastRect().leftCenter,
+		cv::Point(detect.x, detect.y + detect.height / 2));
+	double rightDist = distPointToPoint(getLastRect().rightCenter,
+		cv::Point(detect.br().x, detect.y + detect.height / 2));
+	double topDist = distPointToPoint(getLastRect().topCenter,
+		cv::Point(detect.x + detect.width / 2, detect.y));
+	double bottomDist = distPointToPoint(getLastRect().bottomCenter,
+		cv::Point(detect.x + detect.width / 2, detect.br().y));
+	double averageDist = (leftDist+rightDist+topDist+bottomDist) / 4.0;
+
+	double coef = getLastRect().lastInput.area() / detect.area() - 1;
+	averageDist *= abs(coef) + 1;
+	return averageDist;
 }
 
 //=========================================================================================
@@ -155,6 +154,7 @@ MultiTrack::MultiTrack()
 
 vector<HowIntersectedRect> MultiTrack::intersectionRect(vector<Rect> rects)
 {
+	
 	vector<HowIntersectedRect>v_howIntersectedRect;
 	HowIntersectedRect howIntersectedRect;
 	if (rects.size() > 1)
@@ -189,123 +189,87 @@ vector<HowIntersectedRect> MultiTrack::intersectionRect(vector<Rect> rects)
 		}
 	}
 	return v_howIntersectedRect;
+	
 }
 
-void MultiTrack::add(vector<Rect>& rects)
+void MultiTrack::addUsingRect(vector<Rect>& rects)
 {
-
+	
 	if (!rects.size())return;
 
-	if (rects.size() > 1)
-		cout << endl;
-	vector<HowIntersectedRect> intersectionStruct=intersectionRect(rects);
+	vector<HowIntersectedRect> intersectionStruct = intersectionRect(rects);
 
 	for (auto rect : rects)
 	{
+
 		if (rect > maxSizeRect)continue;
-	
-		/*	
-	bool mustContinue = false;
-		
-		for (auto currentIntersectionStruct : intersectionStruct)
-		{
-			if (currentIntersectionStruct.howWereIntersected!=-1)
-			{
-				if (tempCurrentStep != currentIntersectionStruct.howWereIntersected)
-				{
-					mustContinue = true;
-					break;
-				}
-			}
-		}
-		if (mustContinue)
-		{
-			cout << "was passed" << endl;
-			mustContinue = false;
-			continue;
-		}
-	*/	
-		//for (auto intersectionPair : intersectionPairs)
-		//	if (intersectionPair.first == tempCurrentStep) return;
-	
-		//if (tempCurrentStep == intersectionPair.second)continue;
 
 		PointOfRect pointOfRect(rect);
 
-		for (int i = 0; i < 4; i++)
+		if (countOfTracks)
 		{
-			Point operatePoint;
-			int minDynamicDistanse = pointOfRect.minDistanse;
-			switch (i)
+			map<int, int>mapOfOverlap;
+			int position = 0; //position of track in vector of tracks
+			for (auto& currentTrack : vecTrack)
 			{
-			case 0:
-				operatePoint = pointOfRect.topCenter;
-				break;
-			case 1:
-				operatePoint = pointOfRect.bottomCenter;
-				break;
-			case 2:
-				operatePoint = pointOfRect.leftCenter;
-				break;
-			case 3:
-				operatePoint = pointOfRect.rightCenter;
-				break;
-			}
-			
-			if (countOfTracks)
-			{
-				map<int, int>mapOfOverlap;
-				int position = 0; //position of track in vector of tracks
-				for (auto& currentTrack : vecTrack)
+				// TODO I'v forgot what is it
+				//currentTrack.minDistance = pointOfRect.minDistanse;
+				//---------
+				if (currentTrack.nextTo(rect))
 				{
-					currentTrack.minDistance = pointOfRect.minDistanse;
-					if (currentTrack.nextTo(operatePoint))
-					{
-						mapOfOverlap.insert(pair<int, int>(position, currentTrack.idTrack));
-						currentTrack.currentKarma = 0;
-					}
-					else
-					{
-						currentTrack.currentKarma = min((currentTrack.currentKarma + 1), currentTrack.karma);
-					}
-					position++;
+					mapOfOverlap.insert(pair<int, int>(position, currentTrack.idTrack));
 				}
+				position++;
+			}
 
-				if (!mapOfOverlap.size()) //no one is near
-				{
-					int idNewTrack = 0;
-					idNewTrack = newTrack();
-					vecTrack[idNewTrack - 1].add(operatePoint);
-					vecTrack[idNewTrack - 1].lastRect = rect;
-					continue;
-				}
-				else if (mapOfOverlap.size() == 1) //only one track near to point
-				{
-					vecTrack[mapOfOverlap.begin()->first].add(operatePoint);
-					vecTrack[mapOfOverlap.begin()->first].lastRect = rect;
-					continue;
-				}
-				else //two track have to keep the point
-				{
-					cout << "Near to few tracks" << endl;
-				}
-			}
-			else
+			if (!mapOfOverlap.size()) //no one is near
 			{
-				int newTrackId = newTrack();
-				cout << "New track " << newTrackId << endl;
-				vecTrack[0].add(operatePoint);
-				vecTrack[0].lastRect = rect;
+				
+				int idNewTrack = newTrack();
+				vecTrack[idNewTrack - 1].add(rect);
+				vecTrack[0].getLastRect().lastInput = rect;
 				continue;
 			}
+			else if (mapOfOverlap.size() == 1) //only one track near to point
+			{
+				vecTrack[mapOfOverlap.begin()->first].add(rect);
+				vecTrack[mapOfOverlap.begin()->first].getLastRect().lastInput= rect;
+				continue;
+			}
+			else //two track have to keep the point
+			{
+				cout << "Near to few tracks" << endl;
+				auto bestTrackIt = vecTrack.begin() + mapOfOverlap.begin()->first;
+				double bestDist = bestTrackIt->getWeightedDistance(rect);
+				for (auto it = mapOfOverlap.begin(); it != mapOfOverlap.end(); it++)
+				{
+					double dist = (vecTrack.begin() + it->first)->getWeightedDistance(rect);
+					if (dist < bestDist)
+					{
+						bestTrackIt = vecTrack.begin() + it->first;
+						bestDist = dist;
+					}
+				}
+				bestTrackIt->add(rect);
+			}
 		}
+		else
+		{
+			int newTrackId = newTrack();
+			cout << "New track " << newTrackId << endl;
+			vecTrack[0].add(rect);
+			vecTrack[0].getLastRect().lastInput = rect;
+			//v_assigment[0] = 0;
+			continue;
+		}
+		
 	}
 }
 
 int MultiTrack::newTrack()
 {
 	int vacantNumber = whoIsVacant();
-	vecTrack.emplace_back(MyTrack());
+	vecTrack.emplace_back(MyTrackUsingRect());
 	vecTrack.back().idTrack = vacantNumber;
 	lastNumberTrack = max(vacantNumber, lastNumberTrack);
 	countOfTracks++;
@@ -319,6 +283,7 @@ int MultiTrack::whoIsVacant()
 
 void MultiTrack::destroyTrack(int id)
 {
+	
 	int position = 0;
 	for (int i = 0; i < vecTrack.size(); i++)
 	{
@@ -357,7 +322,7 @@ vector<int> MultiTrack::whoIsOld()
 	return oldTracks;
 }
 
-vector<MyTrack>& MultiTrack::getVecTrack()
+vector<MyTrackUsingRect>& MultiTrack::getVecTrack()
 {
 	return vecTrack;
 }
@@ -369,7 +334,7 @@ bool MultiTrack::tryDestroyAll()
 	for (auto currentTrack : vecTrack)
 	{
 		int tempAgeTrack=currentTrack.age();
-		if ((tempAgeTrack >= maxAgeUsingTime)|| !currentTrack.countOfPoint() || tempAgeTrack==-1)
+		if ((tempAgeTrack >= maxAgeUsingTime)|| !currentTrack.countOfRect() || tempAgeTrack==-1)
 		tempCountOfTracks++;
 	}
 	if (tempCountOfTracks >= vecTrack.size())
@@ -387,6 +352,7 @@ bool MultiTrack::tryDestroyAll()
 }
 
 //==============================================================================
+/*
 OpenCVMultiTracker::OpenCVMultiTracker( Mat frame, vector<Rect> ROIs)
 {
 	fullImage = frame;
@@ -480,3 +446,4 @@ void OpenCVMultiTracker::addROIs()
 	}
 	trackers.add(algorithms, fullImage, objects);
 }
+*/

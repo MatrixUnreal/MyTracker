@@ -25,13 +25,16 @@
 #include <vector>
 #include <iostream>
 
+#include "mymath.h"
+
 #ifdef HAVE_OPENCV
 #include <opencv2/flann.hpp>
 #endif
 
-
 using namespace cv;
 using namespace std;
+
+Point centerOfRect(Rect rect);
 
 struct HowIntersectedRect
 {
@@ -39,39 +42,61 @@ struct HowIntersectedRect
 	int howWereIntersected;
 };
 
-class MyTrack
+enum { LEFT, RIGHT };
+
+
+struct PointOfRect
+{
+	Point pointCenter, topCenter, bottomCenter, leftCenter, rightCenter;
+	int minDistanse;
+	Rect lastInput;
+	PointOfRect(Rect rect)
+	{
+		pointCenter = centerOfRect(rect);
+		topCenter = Point(rect.x + rect.width / 2, rect.y);
+		bottomCenter = Point(rect.x + rect.width / 2, rect.y + rect.height);
+		leftCenter = Point(rect.x, rect.y + rect.height / 2);
+		rightCenter = Point(rect.x + rect.width, rect.y + rect.height / 2);
+		minDistanse = (rect.width / (2.2));
+		lastInput = rect;
+	}
+};
+
+
+class MyTrackUsingRect
 {
 public:
-	MyTrack();
-	int countOfPoint();
-	Point lastPoint();
+	MyTrackUsingRect();
+	vector<PointOfRect> myRects;
+	int countOfRect();
 	void clear();
-	bool add(Point point);
-	void draw(Mat img);
-	Point center(Rect rect);
-	vector<Point> myLine;
+	void draw(Mat& img);
+	bool nextTo(Rect inputRect);
+	bool nextTo(Rect inputRect,int dir);
 	void showLine();
-	bool nextTo(Point point);
+	int age();
 	int idTrack;
-	int age();	
-	int currentKarma=0;
-	int karma = 8;
-	Rect lastRect;
-	void addToKarma();
-	int minDistance = 50;
+	bool add(Rect inputRect);
 	bool visible = false;
+	PointOfRect& getLastRect();
+	double getWeightedDistance(cv::Rect detect);
+	//vector<Point> myLine;
+	//Point center(Rect rect);
+	//int currentKarma = 0;
+	//int karma = 8;	
+	//void addToKarma();	
 private:	
-	int maxAgeUsingTime=9000;
-	Point point;		
-	int maxPoints = 50;
-	clock_t lastTime= clock();
-	Scalar color= Scalar(rand() % 255, rand() % 255, rand() % 255);
+	int maxAgeUsingTime = 9000;
+	clock_t lastTime = clock();
+	Scalar color = Scalar(rand() % 255, rand() % 255, rand() % 255);
+	int maxRects = 50;	
+	int minDistance = 400;
 };
 
 class MultiTrack
 {
 public:
-	void add(vector<Rect>& rects);
+	void addUsingRect(vector<Rect>& rects);
 	MultiTrack();
 	void draw(Mat img);
 	void show();
@@ -79,22 +104,20 @@ public:
 	vector<int> whoIsOld();
 	int maxAge = 3;
 	int maxAgeUsingTime = 9000;
-	vector<MyTrack>& getVecTrack();
+	vector<MyTrackUsingRect>& getVecTrack();
 	void destroyTrack(int id);
 	bool tryDestroyAll();
-	int accuracy = 0;
-	Point middlePointOfFewTracks;
 private:
 	vector<HowIntersectedRect> intersectionRect(vector<Rect> rects);
 	Size maxSizeRect = Size(400,400);
 	int countOfTracks;
 	int lastNumberTrack;
 	int whoIsVacant();
-	vector<MyTrack> vecTrack;
+	vector<MyTrackUsingRect> vecTrack;
 	int newTrack();
 };
 
-
+/*
 class OpenCVMultiTracker
 {
 public:
@@ -116,5 +139,5 @@ private:
 	int countOfMotion = 0;
 	int maxCountOfMotion = 2;
 };
-
+*/
  

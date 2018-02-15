@@ -145,7 +145,7 @@ int main()
 			cv::rectangle(camera.frame_cam, face, cv::Scalar(0, 255, 0),3);
 		}
 
-		multiTrack.add(faces);		
+		multiTrack.addUsingRect(faces);
 		
 		for (auto& currentTrack : multiTrack.getVecTrack())
 		{
@@ -160,12 +160,12 @@ int main()
 			}
 
 			cout << "//////////////////" << endl;
-			/*currentTrack.addToKarma();
-			if (currentTrack.currentKarma >= currentTrack.karma)
-			{
-				cout << "Old track " << to_string(currentTrack.idTrack) << endl;
-				v_lastRect.push_back(currentTrack.lastRect);
-			}*/
+			//currentTrack.addToKarma();
+			//if (currentTrack.currentKarma >= currentTrack.karma)
+			//{
+			//	cout << "Old track " << to_string(currentTrack.idTrack) << endl;
+			//	v_lastRect.push_back(currentTrack.lastRect);
+			//}
 		}
 
 		//if(v_lastRect.size())
