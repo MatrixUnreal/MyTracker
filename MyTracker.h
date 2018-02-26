@@ -42,6 +42,12 @@ struct HowIntersectedRect
 	int howWereIntersected;
 };
 
+struct PendingRect
+{
+	cv::Rect rect;
+	double distance = -1.0;
+};
+
 enum { LEFT, RIGHT };
 
 
@@ -80,17 +86,21 @@ public:
 	bool visible = false;
 	PointOfRect& getLastRect();
 	double getWeightedDistance(cv::Rect detect);
+	Rect resetPendingRect(cv::Rect rect, double dist);
+	void applyPendingRect();
 	//vector<Point> myLine;
 	//Point center(Rect rect);
 	//int currentKarma = 0;
 	//int karma = 8;	
 	//void addToKarma();	
 private:	
-	int maxAgeUsingTime = 9000;
+	PendingRect pendingRect;
+	
+	int maxAgeUsingTime = 200000;
 	clock_t lastTime = clock();
 	Scalar color = Scalar(rand() % 255, rand() % 255, rand() % 255);
 	int maxRects = 50;	
-	int minDistance = 400;
+	int minDistance = 70;
 };
 
 class MultiTrack
@@ -103,10 +113,12 @@ public:
 	vector<int> oldTracks;
 	vector<int> whoIsOld();
 	int maxAge = 3;
-	int maxAgeUsingTime = 9000;
+	int maxAgeUsingTime = 200000;
 	vector<MyTrackUsingRect>& getVecTrack();
 	void destroyTrack(int id);
 	bool tryDestroyAll();
+	void addUsingRectNew(vector<Rect>& rects);
+
 private:
 	vector<HowIntersectedRect> intersectionRect(vector<Rect> rects);
 	Size maxSizeRect = Size(400,400);
@@ -114,7 +126,10 @@ private:
 	int lastNumberTrack;
 	int whoIsVacant();
 	vector<MyTrackUsingRect> vecTrack;
-	int newTrack();
+	std::vector<vector<MyTrackUsingRect>::iterator> getSuitableTracks(cv::Rect rect);
+	cv::Rect findBestTrack(cv::Rect rect);
+	
+	int newTrack(Rect inputRect);
 };
 
 /*

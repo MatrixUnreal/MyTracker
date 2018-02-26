@@ -95,11 +95,27 @@ bool MyTrackUsingRect::nextTo(Rect inputRect)
 {
 	if (inputRect == Rect())return false;
 	PointOfRect inputRect_(inputRect);
-
+	
 	double distBC = cv::norm(inputRect_.bottomCenter - myRects.back().bottomCenter);
 	double distTC = cv::norm(inputRect_.topCenter - myRects.back().topCenter);
 	double distLC = cv::norm(inputRect_.leftCenter - myRects.back().leftCenter);
 	double distRC = cv::norm(inputRect_.rightCenter - myRects.back().rightCenter);
+	/*if (minDistance > distBC && minDistance > distTC && minDistance > distLC && minDistance > distRC)
+	{
+		double dist = getWeightedDistance(inputRect);
+		if (pendingRect.distance > dist)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	else
+	{
+		return false;
+	}*/
 	if (minDistance > distBC && minDistance > distTC && minDistance > distLC && minDistance > distRC)
 		return true;
 	else
@@ -144,6 +160,22 @@ double MyTrackUsingRect::getWeightedDistance(cv::Rect detect)
 	double coef = getLastRect().lastInput.area() / detect.area() - 1;
 	averageDist *= abs(coef) + 1;
 	return averageDist;
+}
+
+Rect MyTrackUsingRect::resetPendingRect(cv::Rect rect, double dist)
+{
+	Rect  oldRect = pendingRect.rect;
+	pendingRect.rect = rect;
+	pendingRect.distance = dist;
+	return oldRect;
+}
+
+void MyTrackUsingRect::applyPendingRect()
+{
+	PointOfRect pointOfRect_(pendingRect.rect);
+	myRects.push_back(pointOfRect_);
+	pendingRect.rect = Rect();
+	pendingRect.distance = -1;
 }
 
 //=========================================================================================
@@ -192,12 +224,15 @@ vector<HowIntersectedRect> MultiTrack::intersectionRect(vector<Rect> rects)
 	
 }
 
+
 void MultiTrack::addUsingRect(vector<Rect>& rects)
 {
-	
+
 	if (!rects.size())return;
 
 	vector<HowIntersectedRect> intersectionStruct = intersectionRect(rects);
+
+	vector<int>v_forbiddenAdd;
 
 	for (auto rect : rects)
 	{
@@ -205,7 +240,7 @@ void MultiTrack::addUsingRect(vector<Rect>& rects)
 		if (rect > maxSizeRect)continue;
 
 		PointOfRect pointOfRect(rect);
-
+		
 		if (countOfTracks)
 		{
 			map<int, int>mapOfOverlap;
@@ -224,16 +259,26 @@ void MultiTrack::addUsingRect(vector<Rect>& rects)
 
 			if (!mapOfOverlap.size()) //no one is near
 			{
-				
-				int idNewTrack = newTrack();
-				vecTrack[idNewTrack - 1].add(rect);
-				vecTrack[0].getLastRect().lastInput = rect;
+				int idNewTrack = newTrack(rect);
+				v_forbiddenAdd.push_back(idNewTrack - 1);
 				continue;
 			}
 			else if (mapOfOverlap.size() == 1) //only one track near to point
 			{
-				vecTrack[mapOfOverlap.begin()->first].add(rect);
-				vecTrack[mapOfOverlap.begin()->first].getLastRect().lastInput= rect;
+				bool temp_permition = false;
+				for (auto forbiddenAdd : v_forbiddenAdd)
+				{
+					if (forbiddenAdd == vecTrack[mapOfOverlap.begin()->first].idTrack)
+					{
+						temp_permition = true;
+						break;
+					}
+				}
+				if (!temp_permition)
+				{
+					vecTrack[mapOfOverlap.begin()->first].add(rect);
+					vecTrack[mapOfOverlap.begin()->first].getLastRect().lastInput = rect;
+				}
 				continue;
 			}
 			else //two track have to keep the point
@@ -250,29 +295,45 @@ void MultiTrack::addUsingRect(vector<Rect>& rects)
 						bestDist = dist;
 					}
 				}
-				bestTrackIt->add(rect);
+				bool temp_permition = false;
+				for (auto forbiddenAdd : v_forbiddenAdd)
+				{
+					if (forbiddenAdd == vecTrack[mapOfOverlap.begin()->first].idTrack)
+					{
+						temp_permition = true;
+						break;
+					}
+				}
+				if (!temp_permition)
+				{
+					bestTrackIt->add(rect);
+				}
 			}
 		}
 		else
 		{
-			int newTrackId = newTrack();
+			int newTrackId = newTrack(rect);
 			cout << "New track " << newTrackId << endl;
-			vecTrack[0].add(rect);
-			vecTrack[0].getLastRect().lastInput = rect;
-			//v_assigment[0] = 0;
+			v_forbiddenAdd.push_back(0);
 			continue;
 		}
-		
+
 	}
 }
 
-int MultiTrack::newTrack()
+
+
+int MultiTrack::newTrack(Rect inputRect)
 {
 	int vacantNumber = whoIsVacant();
 	vecTrack.emplace_back(MyTrackUsingRect());
 	vecTrack.back().idTrack = vacantNumber;
 	lastNumberTrack = max(vacantNumber, lastNumberTrack);
 	countOfTracks++;
+
+	vecTrack[vacantNumber - 1].add(inputRect);
+	vecTrack[0].getLastRect().lastInput = inputRect;
+
 	return vacantNumber;
 }
 
@@ -348,6 +409,78 @@ bool MultiTrack::tryDestroyAll()
 	else
 	{
 		return true;
+	}
+}
+
+
+std::vector<vector<MyTrackUsingRect>::iterator> MultiTrack::getSuitableTracks(cv::Rect rect)
+{
+	std::vector<vector<MyTrackUsingRect>::iterator> ret;
+	for (auto trackIt = vecTrack.begin(); trackIt != vecTrack.end(); trackIt++)
+	{
+		if (trackIt->nextTo(rect)) //сделать сравнение с pendingRect внутри
+		{
+			ret.push_back(trackIt);
+		}
+	}
+	return ret;
+}
+
+cv::Rect MultiTrack::findBestTrack(cv::Rect rect)
+{
+	auto suitableTracks = getSuitableTracks(rect); //тут будет цикл с вызовом nextTo()
+	if (suitableTracks.empty())
+	{
+		return rect;
+	}
+	else
+	{
+		auto bestTrack = vecTrack.end();
+		double bestDistance = -1.0;
+		for (auto trackIt : suitableTracks)
+		{
+			double distance = trackIt->getWeightedDistance(rect);
+			if (bestDistance == -1.0 ||
+				distance < bestDistance)
+			{
+				bestTrack = trackIt;
+				bestDistance = distance;
+			}
+		}
+		cv::Rect oldRect = bestTrack->resetPendingRect(rect, bestDistance);
+		if (oldRect != cv::Rect())
+		{
+			return findBestTrack(oldRect);
+		}
+		else
+		{
+			return oldRect;
+		}
+	}
+}
+
+void MultiTrack::addUsingRectNew(vector<Rect>& rects)
+{
+	std::vector<cv::Rect> unsuitableRects;
+	for (auto rect : rects)
+	{
+		if (rect > maxSizeRect)
+			continue;
+
+		auto unsuitableRect = findBestTrack(rect);
+		if (unsuitableRect != cv::Rect())
+		{
+			unsuitableRects.push_back(unsuitableRect);
+		}
+	}
+	for (auto& track : vecTrack)
+	{
+		track.applyPendingRect();
+	}
+	for (auto rect : unsuitableRects)
+	{
+		//create new track
+		newTrack(rect);
 	}
 }
 
